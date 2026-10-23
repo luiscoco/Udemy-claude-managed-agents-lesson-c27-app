@@ -1,0 +1,37 @@
+import Anthropic from "@anthropic-ai/sdk";
+export function requireHostSecret(env: Readonly<Record<string, string | undefined>>, name: string) {
+  const value = env[name];
+  if (!value?.trim()) throw new Error("Required host credential is unavailable");
+  return value; // never log or send to model context
+}
+export async function provisionExampleVault(client: Anthropic, env: Readonly<Record<string, string | undefined>>) {
+  const token = requireHostSecret(env, "INVENTORY_MCP_TOKEN");
+  const key = requireHostSecret(env, "REPORTS_API_KEY");
+  const vault = await client.beta.vaults.create({ display_name: "Reviewed service credentials" }, { maxRetries: 0, timeout: 10000 });
+  try {
+    const mcp = await client.beta.vaults.credentials.create(vault.id, { display_name: "Inventory MCP",
+      auth: { type: "static_bearer", mcp_server_url: "https://inventory.example.com/mcp", token }
+    }, { maxRetries: 0, timeout: 10000 });
+    const api = await client.beta.vaults.credentials.create(vault.id, { display_name: "Reports API",
+      auth: { type: "environment_variable", secret_name: "REPORTS_API_KEY", secret_value: key,
+        networking: { type: "limited", allowed_hosts: ["api.example.com"] },
+        injection_location: { header: true, body: false } }
+    }, { maxRetries: 0, timeout: 10000 });
+    return { vaultId: vault.id, credentialIds: [mcp.id, api.id] };
+  } catch {
+    // Partial setup may exist. Keep IDs for reconciliation, without copying sensitive errors.
+    throw Object.assign(new Error("Vault setup incomplete; reconcile partial provisioning"), { vaultId: vault.id });
+  }
+}
+export function sessionWithVault(agentId: string, version: number, environmentId: string, authorizedVaultId: string) {
+  if (!authorizedVaultId.trim()) throw new Error("Authorized vault ID required");
+  return { agent: { type: "agent" as const, id: agentId, version }, environment_id: environmentId,
+    vault_ids: [authorizedVaultId] };
+}
+// Example endpoints are placeholders, not live destinations. Never execute with unreviewed hosts.
+// Host authenticates the caller and authorizes the workspace/vault before session creation.
+// MCP URL credentials and environment placeholders are different injection mechanisms.
+// Header-only egress substitution requires a client that sends the value verbatim in a header.
+// Local signing/transformation of the placeholder does not produce a valid secret-derived signature.
+// A vaulted credential can still be used to perform permitted service actions: enforce least privilege.
+// No top-level reads of process.env, provider requests, credential printing or rotation occur here.

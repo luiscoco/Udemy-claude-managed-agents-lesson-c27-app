@@ -1,0 +1,29 @@
+{
+  "source": "live-provider-commentary",
+  "sessionId": "sesn_01QBjWdacW8yqXJfiEAxPEia",
+  "answer": "This is a local teaching experiment about credential hygiene, illustrating that secret values should never appear in model-visible text \u2014 only opaque references (like `demo-vault-reference`) are passed. The simulated plan binds that reference to a reviewed destination and injects it via header only, keeping the actual credential value uncollected and out of the prompt. The lesson reinforces that even with a vault pattern in place, any resulting service actions still require least-privilege scoping.",
+  "stopReason": "end_turn",
+  "eventTypes": [
+    "session.status_running",
+    "session.thread_status_running",
+    "user.message",
+    "span.model_request_start",
+    "agent.thinking",
+    "agent.message",
+    "span.model_request_end",
+    "session.thread_status_idle",
+    "session.usage",
+    "session.status_idle"
+  ],
+  "requestUsage": [
+    {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 601,
+      "output_tokens": 134,
+      "speed": "standard"
+    }
+  ],
+  "experimentHash": "73f7ba83758ec9d053808c7c877c35f65866fac3bc941e8a6a41f3ee969e3fa3",
+  "scope": "A real text-only model response about the local experiment. External integrations and the experiment's correctness are not certified by this response."
+}
