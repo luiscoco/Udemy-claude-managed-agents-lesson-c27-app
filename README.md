@@ -42,26 +42,79 @@ CLAUDE_MANAGED_ENVIRONMENT_ID=your_environment_id
 PORT=3027
 ```
 
-## How the application was developed
+## How the app was build
 
-The browser collects inputs; the Node host validates requests; the lesson implementation produces observable evidence. The architecture page walks through the real source with numbered steps, prerequisite configuration, source filenames and code excerpts.
+### 1. Authorize the injection destination
 
-### Lesson implementation
+The local policy requires an authorized reference, HTTPS, the exact reviewed hostname and header-only injection. A credential reference alone cannot authorize another endpoint.
 
-[src/lesson.ts](https://github.com/luiscoco/Udemy-claude-managed-agents-lesson-c27-app/blob/main/src/lesson.ts)
+Source: [src/lesson.ts](src/lesson.ts#L13) · selected statements
 
 ```typescript
-  async run(input) {
+const destination = new URL(text(input, "destination"));
 
-const destination=new URL(text(input,"destination"));
-if(!flag(input,"authorizedVault")||destination.protocol!=="https:"||destination.hostname!=="api.example.com"||text(input,"location")!=="header")return report("rejected","The reviewed vault injection policy does not permit this destination or location",{},["Authorize the vault reference","Match the reviewed hostname","Restrict substitution to the intended header"]);
-return report("passed","Prepared a redacted host credential plan",{vaultReference:"demo-vault-reference",destination:destination.origin,injection:"header-only",secretInPrompt:false,credentialValue:"not collected"},["Keep credential values outside model text","Bind a reference to a reviewed destination","Service actions still need least privilege"]);
-
-  }
-};
+if (
+  !flag(input, "authorizedVault") ||
+  destination.protocol !== "https:" ||
+  destination.hostname !== "api.example.com" ||
+  text(input, "location") !== "header"
+)
+  return report(
+    "rejected",
+    "The reviewed vault injection policy does not permit this destination or location",
+    {},
+    [
+      "Authorize the vault reference",
+      "Match the reviewed hostname",
+      "Restrict substitution to the intended header",
+    ],
+  );
 ```
 
-Read the architecture page for the remaining source excerpts and explanations, including input handling and optional provider behavior. The diagram describes this application, rather than implying that an external integration has been implemented.
+### 2. Keep secret values out of the plan
+
+The output records only a demo reference, destination origin and injection location. credentialValue is not collected and secretInPrompt is false; no vault read or credential substitution occurs.
+
+Source: [src/lesson.ts](src/lesson.ts#L15)
+
+```typescript
+return report(
+  "passed",
+  "Prepared a redacted host credential plan",
+  {
+    vaultReference: "demo-vault-reference",
+    destination: destination.origin,
+    injection: "header-only",
+    secretInPrompt: false,
+    credentialValue: "not collected",
+  },
+  [
+    "Keep credential values outside model text",
+    "Bind a reference to a reviewed destination",
+    "Service actions still need least privilege",
+  ],
+);
+```
+
+### Check your understanding
+
+Run **Plan header-only injection** in the application. Compare the result with these scenario expectations:
+
+```json
+{
+  "input": {
+    "destination": "https://api.example.com/reports",
+    "location": "header",
+    "authorizedVault": true
+  },
+  "expectedOutcome": "passed",
+  "checkEvidence": {
+    "secretInPrompt": false
+  }
+}
+```
+
+Then try **Reject an unreviewed destination**. Its expected outcome is `rejected`; identify the condition or evidence field that explains the difference.
 
 ## Validation
 
